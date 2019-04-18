@@ -190,6 +190,7 @@ fabric.properties
 [Ss]cripts
 pyvenv.cfg
 pip-selfcheck.json
+virtual
 
 /data/raw/*
 /data/sparql/*
@@ -205,3 +206,6 @@ app/server/webpack-stats.json
 
 # vim swap files
 *.swp
+
+# PyCharm IDE
+.idea
