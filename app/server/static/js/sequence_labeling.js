@@ -15,9 +15,9 @@ Vue.component('annotator', {
       type: Array, // [{id: Integer, color: String, text: String}]
       default: () => [],
     },
-    text: {
-      type: String,
-      default: '',
+    doc: {
+      type: Object,
+      default: null,
     },
     entityPositions: {
       type: Array, // [{'startOffset': 10, 'endOffset': 15, 'label_id': 1}]
@@ -66,6 +66,20 @@ Vue.component('annotator', {
         id2label[label.id] = label;
       }
       return id2label;
+    },
+
+    isEmail() {
+      return this.doc && this.doc.resourcetype == 'Email';
+    },
+
+    text() {
+      if (!this.doc) { return ''; }
+      switch (this.doc.resourcetype) {
+        case 'Email':
+          return this.doc.subject;
+        default:
+          return this.text;
+      }
     },
   },
 
@@ -167,6 +181,8 @@ Vue.component('annotator', {
           + '       >{{ [...text].slice(r.start_offset, r.end_offset).join(\'\') }}<button class="delete is-small"'
           + '                            v-if="id2label[r.label].text_color"'
           + '                            @click="removeLabel(r)"></button></span>'
+          + '      <hr v-if="isEmail"/>'
+          + '      <div v-html="doc.body_html" v-if="isEmail"></div>'
           + '  </div>',
 });
 

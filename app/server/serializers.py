@@ -49,6 +49,7 @@ class LabelSerializer(serializers.ModelSerializer):
 
 class DocumentSerializer(serializers.ModelSerializer):
     annotations = serializers.SerializerMethodField()
+    title = serializers.SerializerMethodField()
 
     def get_annotations(self, instance):
         request = self.context.get('request')
@@ -61,19 +62,25 @@ class DocumentSerializer(serializers.ModelSerializer):
         serializer = serializer(annotations, many=True)
         return serializer.data
 
+    def get_title(self, instance):
+        return instance.text
+
     class Meta:
         model = Document
-        fields = ('id', 'text', 'annotations', 'meta')
+        fields = ('id', 'text', 'annotations', 'meta', 'title')
 
 
 class EmailSerializer(DocumentSerializer):
+
+    def get_title(self, instance):
+        return instance.subject
 
     class Meta:
         model = Email
         fields = (
             'id', 'annotations', 'location', 'attachment', 'sent_date',
             'from_email_address', 'to', 'cc', 'bcc', 'subject',
-            'body_txt', 'body_html'
+            'body_txt', 'body_html', 'title'
         )
 
 
