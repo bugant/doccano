@@ -293,11 +293,21 @@ class TestDocumentListAPI(APITestCase):
 
         cls.main_project = mommy.make('server.TextClassificationProject', users=[project_member, super_user])
         mommy.make('server.Document', project=cls.main_project)
+        mommy.make('server.Email', project=cls.main_project)
 
         sub_project = mommy.make('server.TextClassificationProject', users=[non_project_member])
         mommy.make('server.Document', project=sub_project)
         cls.url = reverse(viewname='doc_list', args=[cls.main_project.id])
         cls.data = {'text': 'example'}
+        cls.email_data = {
+            'resourcetype': 'Email',
+            'subject': 'example subject',
+            'from_email_address': 'me@example.com',
+            'to': 'you@example.com',
+            'body_html': '<h1>Hello</h1>',
+            'location': 's3://example.com/123.eml',
+            'sent_date': '2019-04-18T13:22:24.008850+00:00'
+        }
 
     def test_returns_docs_to_project_member(self):
         self.client.login(username=self.project_member_name,
@@ -321,12 +331,24 @@ class TestDocumentListAPI(APITestCase):
         self.client.login(username=self.super_user_name,
                           password=self.super_user_pass)
         response = self.client.post(self.url, format='json', data=self.data)
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.content)
 
     def test_disallows_project_member_to_create_doc(self):
         self.client.login(username=self.project_member_name,
                           password=self.project_member_pass)
         response = self.client.post(self.url, format='json', data=self.data)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_allows_superuser_to_create_email(self):
+        self.client.login(username=self.super_user_name,
+                          password=self.super_user_pass)
+        response = self.client.post(self.url, format='json', data=self.email_data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.content)
+
+    def test_disallows_project_member_to_create_email(self):
+        self.client.login(username=self.project_member_name,
+                          password=self.project_member_pass)
+        response = self.client.post(self.url, format='json', data=self.email_data)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
 
@@ -384,6 +406,66 @@ class TestDocumentDetailAPI(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
     def test_disallows_project_member_to_delete_doc(self):
+        self.client.login(username=self.project_member_name,
+                          password=self.project_member_pass)
+        response = self.client.delete(self.url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+
+class TestEmailDetailAPI(APITestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.project_member_name = 'project_member_name'
+        cls.project_member_pass = 'project_member_pass'
+        cls.non_project_member_name = 'non_project_member_name'
+        cls.non_project_member_pass = 'non_project_member_pass'
+        cls.super_user_name = 'super_user_name'
+        cls.super_user_pass = 'super_user_pass'
+        project_member = User.objects.create_user(username=cls.project_member_name,
+                                                  password=cls.project_member_pass)
+        non_project_member = User.objects.create_user(username=cls.non_project_member_name,
+                                                      password=cls.non_project_member_pass)
+        # Todo: change super_user to project_admin.
+        super_user = User.objects.create_superuser(username=cls.super_user_name,
+                                                   password=cls.super_user_pass,
+                                                   email='fizz@buzz.com')
+        project = mommy.make('server.TextClassificationProject', users=[project_member, super_user])
+        cls.doc = mommy.make('server.Email', project=project)
+        cls.url = reverse(viewname='doc_detail', args=[project.id, cls.doc.id])
+        cls.data = {'resourcetype': 'Email', 'subject': 'example'}
+
+    def test_returns_email_to_project_member(self):
+        self.client.login(username=self.project_member_name,
+                          password=self.project_member_pass)
+        response = self.client.get(self.url, format='json')
+        self.assertEqual(response.data['id'], self.doc.id)
+
+    def test_do_not_return_email_to_non_project_member(self):
+        self.client.login(username=self.non_project_member_name,
+                          password=self.non_project_member_pass)
+        response = self.client.get(self.url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_allows_superuser_to_update_email(self):
+        self.client.login(username=self.super_user_name,
+                          password=self.super_user_pass)
+        response = self.client.patch(self.url, format='json', data=self.data)
+        self.assertEqual(response.data['subject'], self.data['subject'])
+
+    def test_disallows_project_member_to_update_email(self):
+        self.client.login(username=self.project_member_name,
+                          password=self.project_member_pass)
+        response = self.client.patch(self.url, format='json', data=self.data)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_allows_superuser_to_delete_email(self):
+        self.client.login(username=self.super_user_name,
+                          password=self.super_user_pass)
+        response = self.client.delete(self.url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+    def test_disallows_project_member_to_delete_email(self):
         self.client.login(username=self.project_member_name,
                           password=self.project_member_pass)
         response = self.client.delete(self.url, format='json')

@@ -4,7 +4,7 @@ from rest_polymorphic.serializers import PolymorphicSerializer
 from rest_framework.exceptions import ValidationError
 
 
-from .models import Label, Project, Document
+from .models import Label, Project, Document, Email
 from .models import TextClassificationProject, SequenceLabelingProject, Seq2seqProject
 from .models import DocumentAnnotation, SequenceAnnotation, Seq2seqAnnotation
 
@@ -64,6 +64,24 @@ class DocumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Document
         fields = ('id', 'text', 'annotations', 'meta')
+
+
+class EmailSerializer(DocumentSerializer):
+
+    class Meta:
+        model = Email
+        fields = (
+            'id', 'annotations', 'location', 'attachment', 'sent_date',
+            'from_email_address', 'to', 'cc', 'bcc', 'subject',
+            'body_txt', 'body_html'
+        )
+
+
+class DocumentPolymorphicSerializer(PolymorphicSerializer):
+    model_serializer_mapping = {
+        Document: DocumentSerializer,
+        Email: EmailSerializer
+    }
 
 
 class ProjectSerializer(serializers.ModelSerializer):
@@ -130,7 +148,7 @@ class DocumentAnnotationSerializer(serializers.ModelSerializer):
 
 
 class SequenceAnnotationSerializer(serializers.ModelSerializer):
-    #label = ProjectFilteredPrimaryKeyRelatedField(queryset=Label.objects.all())
+    # label = ProjectFilteredPrimaryKeyRelatedField(queryset=Label.objects.all())
     label = serializers.PrimaryKeyRelatedField(queryset=Label.objects.all())
     document = serializers.PrimaryKeyRelatedField(queryset=Document.objects.all())
 

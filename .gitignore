@@ -202,3 +202,6 @@ node_modules/
 app/staticfiles/
 app/server/static/bundle/
 app/server/webpack-stats.json
+
+# vim swap files
+*.swp

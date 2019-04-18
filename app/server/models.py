@@ -178,7 +178,7 @@ class Label(models.Model):
         )
 
 
-class Document(models.Model):
+class Document(PolymorphicModel):
     text = models.TextField()
     project = models.ForeignKey(Project, related_name='documents', on_delete=models.CASCADE)
     meta = models.TextField(default='{}')
@@ -187,6 +187,19 @@ class Document(models.Model):
 
     def __str__(self):
         return self.text[:50]
+
+
+class Email(Document):
+    location = models.CharField(max_length=4096)
+    attachment = models.TextField(blank=True, null=True)
+    sent_date = models.DateTimeField()
+    from_email_address = models.CharField(max_length=4096)
+    to = models.TextField()
+    cc = models.TextField(blank=True, null=True)
+    bcc = models.TextField(blank=True, null=True)
+    subject = models.CharField(max_length=4096)
+    body_txt = models.TextField(blank=True, null=True)
+    body_html = models.TextField()
 
 
 class Annotation(models.Model):

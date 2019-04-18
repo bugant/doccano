@@ -12,10 +12,10 @@ from rest_framework.parsers import MultiPartParser
 from rest_framework_csv.renderers import CSVRenderer
 
 from .filters import DocumentFilter
-from .models import Project, Label, Document
+from .models import Project, Label, Document, Email
 from .permissions import IsAdminUserAndWriteOnly, IsProjectUser, IsOwnAnnotation
 from .serializers import ProjectSerializer, LabelSerializer, DocumentSerializer, UserSerializer
-from .serializers import ProjectPolymorphicSerializer
+from .serializers import ProjectPolymorphicSerializer, DocumentPolymorphicSerializer
 from .utils import CSVParser, JSONParser, PlainTextParser, CoNLLParser
 from .utils import JSONLRenderer
 from .utils import JSONPainter, CSVPainter
@@ -108,7 +108,7 @@ class LabelDetail(generics.RetrieveUpdateDestroyAPIView):
 
 class DocumentList(generics.ListCreateAPIView):
     queryset = Document.objects.all()
-    serializer_class = DocumentSerializer
+    serializer_class = DocumentPolymorphicSerializer
     filter_backends = (DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter)
     search_fields = ('text', )
     ordering_fields = ('created_at', 'updated_at', 'doc_annotations__updated_at',
@@ -120,6 +120,16 @@ class DocumentList(generics.ListCreateAPIView):
         queryset = self.queryset.filter(project=self.kwargs['project_id'])
         return queryset
 
+    def create(self, request, *args, **kwargs):
+        req_data = request.data
+        if 'resourcetype' not in req_data:
+            req_data['resourcetype'] = 'Document'
+        serializer = self.get_serializer(data=req_data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
     def perform_create(self, serializer):
         project = get_object_or_404(Project, pk=self.kwargs['project_id'])
         serializer.save(project=project)
@@ -127,9 +137,26 @@ class DocumentList(generics.ListCreateAPIView):
 
 class DocumentDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = Document.objects.all()
-    serializer_class = DocumentSerializer
+    serializer_class = DocumentPolymorphicSerializer
     lookup_url_kwarg = 'doc_id'
     permission_classes = (IsAuthenticated, IsProjectUser, IsAdminUserAndWriteOnly)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        update_data = request.data
+        if 'resourcetype' not in update_data:
+            update_data['resourcetype'] = 'Document'
+        serializer = self.get_serializer(instance, data=update_data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        if getattr(instance, '_prefetched_objects_cache', None):
+            # If 'prefetch_related' has been applied to a queryset, we need to
+            # forcibly invalidate the prefetch cache on the instance.
+            instance._prefetched_objects_cache = {}
+
+        return Response(serializer.data)
 
 
 class AnnotationList(generics.ListCreateAPIView):
