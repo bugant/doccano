@@ -79,6 +79,24 @@
               {{ projectTypeError }}
             </p>
           </div>
+          <div class="field">
+            <label class="label">
+              Document Type
+            </label>
+            <div class="control">
+              <select v-model="documentType" name="document_type" required>
+                <option value="document" selected="selected">
+                  document
+                </option>
+                <option value="email">
+                  email
+                </option>
+              </select>
+            </div>
+            <p class="help is-danger">
+              {{ documentTypeError }}
+            </p>
+          </div>
         </section>
         <footer class="modal-card-foot pt20 pb20 pr20 pl20 has-background-white-ter">
           <button class="button is-primary" @click="create()">
@@ -213,6 +231,7 @@ export default {
     projectName: '',
     description: '',
     projectType: '',
+    documentType: 'document',
     descriptionError: '',
     projectTypeError: '',
     projectNameError: '',
@@ -269,6 +288,7 @@ export default {
         name: this.projectName,
         description: this.description,
         project_type: this.projectType,
+        document_type: this.documentType,
         guideline: 'Please write annotation guideline.',
         resourcetype: this.resourceType(),
       };
@@ -277,6 +297,7 @@ export default {
           window.location = `${baseUrl}/projects/${response.data.id}/docs/create`;
         })
         .catch((error) => {
+          this.documentTypeError = '';
           this.projectTypeError = '';
           this.projectNameError = '';
           this.descriptionError = '';
@@ -288,6 +309,9 @@ export default {
           }
           if ('description' in error.response.data) {
             this.descriptionError = error.response.data.description[0];
+          }
+          if ('document_type' in error.response.data) {
+            this.documentTypeError = error.response.data.document_type[0];
           }
         });
     },

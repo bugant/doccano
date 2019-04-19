@@ -1,0 +1,62 @@
+{% extends "annotation/sequence_labeling.html" %}
+{% load static %}
+{% load render_bundle from webpack_loader %}
+{% block document-annotation %}
+  <label class="label">Subject</label>
+  <annotator ref="annotator" v-bind:labels="labels" v-bind:entity-positions="annotations[pageNumber]" v-bind:text="docs[pageNumber].subject"
+    @remove-label="removeLabel" @add-label="addLabel"></annotator>
+  <hr/>
+  <div v-html="docs[pageNumber].body_html"></div>
+  <hr>
+  <label>Email Data</label>
+  <table>
+    <tr>
+      <td>
+        <label class="label">
+          Location
+        </label>
+      </td>
+      <td>[[ docs[pageNumber].location ]]</td>
+    </tr>
+    <tr>
+      <td>
+        <label class="label">
+          Attachment
+        </label>
+      </td>
+      <td>[[ docs[pageNumber].attachment ]]</td>
+    </tr>
+    <tr>
+      <td>
+        <label class="label">
+          Sent date
+        </label>
+      </td>
+      <td>[[ docs[pageNumber].sent_date ]]</td>
+    </tr>
+    <tr>
+      <td>
+        <label class="label">
+          From
+        </label>
+      </td>
+      <td>[[ docs[pageNumber].from_email_address ]]</td>
+    </tr>
+    <tr>
+      <td>
+        <label class="label">
+          To
+        </label>
+      </td>
+      <td>[[ docs[pageNumber].to ]]</td>
+    </tr>
+    <tr>
+      <td>
+        <label class="label">
+          Cc
+        </label>
+      </td>
+      <td>[[ docs[pageNumber].cc ]]</td>
+    </tr>
+  </table>
+{% endblock %}

@@ -1,0 +1,7 @@
+{% extends "annotation/sequence_labeling.html" %}
+{% load static %}
+{% load render_bundle from webpack_loader %}
+{% block document-annotation %}
+  <annotator ref="annotator" v-bind:labels="labels" v-bind:entity-positions="annotations[pageNumber]" v-bind:text="docs[pageNumber].text"
+    @remove-label="removeLabel" @add-label="addLabel"></annotator>
+{% endblock %}

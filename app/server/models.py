@@ -17,6 +17,14 @@ PROJECT_CHOICES = (
 )
 
 
+DOCUMENT = 'document'
+EMAIL = 'email'
+DOCUMENT_CHOICES = (
+    (DOCUMENT, 'document'),
+    (EMAIL, 'email'),
+)
+
+
 class Project(PolymorphicModel):
     name = models.CharField(max_length=100)
     description = models.TextField(default='')
@@ -25,6 +33,7 @@ class Project(PolymorphicModel):
     updated_at = models.DateTimeField(auto_now=True)
     users = models.ManyToManyField(User, related_name='projects')
     project_type = models.CharField(max_length=30, choices=PROJECT_CHOICES)
+    document_type = models.CharField(max_length=30, choices=DOCUMENT_CHOICES, default=DOCUMENT)
 
     def get_absolute_url(self):
         return reverse('upload', args=[self.id])
@@ -89,7 +98,11 @@ class SequenceLabelingProject(Project):
         return staticfiles_storage.url('images/cats/sequence_labeling.jpg')
 
     def get_template_name(self):
-        return 'annotation/sequence_labeling.html'
+        if self.document_type == DOCUMENT:
+            return 'annotation/sequence_labeling_document.html'
+        elif self.document_type == EMAIL:
+            return 'annotation/sequence_labeling_email.html'
+        raise ValueError('unsupported document_type %s' % self.document_type)
 
     def get_upload_template(self):
         return 'admin/upload/sequence_labeling.html'
