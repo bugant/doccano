@@ -12,7 +12,7 @@ from seqeval.metrics.sequence_labeling import get_entities
 from app.settings import IMPORT_BATCH_SIZE
 from .exceptions import FileParseException
 from .models import Label
-from .serializers import DocumentSerializer, LabelSerializer
+from .serializers import DocumentSerializer, LabelSerializer, DocumentPolymorphicSerializer
 
 
 def extract_label(tag):
@@ -35,7 +35,7 @@ class BaseStorage(object):
         raise NotImplementedError()
 
     def save_doc(self, data):
-        serializer = DocumentSerializer(data=data, many=True)
+        serializer = DocumentPolymorphicSerializer(data=data, many=True)
         serializer.is_valid(raise_exception=True)
         doc = serializer.save(project=self.project)
         return doc
