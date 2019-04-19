@@ -4,7 +4,7 @@ from rest_polymorphic.serializers import PolymorphicSerializer
 from rest_framework.exceptions import ValidationError
 
 
-from .models import Label, Project, Document, Email
+from .models import Label, Project, Document, Email, PolymorphicModel
 from .models import TextClassificationProject, SequenceLabelingProject, Seq2seqProject
 from .models import DocumentAnnotation, SequenceAnnotation, Seq2seqAnnotation
 
@@ -68,6 +68,13 @@ class DocumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Document
         fields = ('id', 'text', 'annotations', 'meta', 'title')
+
+
+class LabelFullSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Label
+        fields = ('__all__')
 
 
 class EmailSerializer(DocumentSerializer):

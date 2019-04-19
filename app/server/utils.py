@@ -2,6 +2,7 @@ import csv
 import io
 import itertools
 import json
+import logging
 import re
 from collections import defaultdict
 
@@ -11,8 +12,10 @@ from seqeval.metrics.sequence_labeling import get_entities
 
 from app.settings import IMPORT_BATCH_SIZE
 from .exceptions import FileParseException
-from .models import Label
-from .serializers import DocumentSerializer, LabelSerializer, DocumentPolymorphicSerializer
+from .models import Label, SequenceAnnotation
+from .serializers import LabelSerializer, DocumentPolymorphicSerializer, LabelFullSerializer
+
+logger = logging.getLogger(__name__)
 
 
 def extract_label(tag):
@@ -164,17 +167,27 @@ class SequenceLabelingStorage(BaseStorage):
     """
     @transaction.atomic
     def save(self, user):
-        saved_labels = {label.text: label for label in self.project.labels.all()}
         for data in self.data:
-            docs = self.save_doc(data)
-            labels = self.extract_label(data)
-            unique_labels = self.extract_unique_labels(labels)
-            unique_labels = self.exclude_created_labels(unique_labels, saved_labels)
-            unique_labels = self.to_serializer_format(unique_labels)
-            new_labels = self.save_label(unique_labels)
-            saved_labels = self.update_saved_labels(saved_labels, new_labels)
-            annotations = self.make_annotations(docs, labels, saved_labels)
-            self.save_annotation(annotations, user)
+            for d in data:
+                annotations = d.pop('annotations', [])
+                doc = self.save_doc([d])[0]
+                for annotation in annotations:
+                    _label = annotation.get('label')
+                    label, _ = Label.objects.get_or_create(
+                        text=_label.get('text'), project_id=doc.project.pk, defaults=_label
+                    )
+                    new_ann = SequenceAnnotation(
+                        document=doc,
+                        label=label,
+                        start_offset=annotation.get('start_offset'),
+                        end_offset=annotation.get('end_offset'),
+                        user=user
+                    )
+                    try:
+                        new_ann.full_clean()
+                        new_ann.save()
+                    except Exception:
+                        logger.error(f'could not create annotation {annotation}')
 
     def extract_unique_labels(self, labels):
         """Extract unique labels
@@ -422,14 +435,14 @@ class JSONLRenderer(JSONRenderer):
 class JSONPainter(object):
 
     def paint(self, documents):
-        serializer = DocumentSerializer(documents, many=True)
+        serializer = DocumentPolymorphicSerializer(documents, many=True)
         data = []
         for d in serializer.data:
-            d['meta'] = json.loads(d['meta'])
+            d['meta'] = json.loads(d.pop('meta', '{}'))
             for a in d['annotations']:
-                a.pop('id')
                 a.pop('prob')
-                a.pop('document')
+                label_id = a.pop('label')
+                a['label'] = LabelFullSerializer(instance=Label.objects.get(pk=label_id)).data
             data.append(d)
         return data
 
