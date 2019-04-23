@@ -172,9 +172,16 @@ class SequenceLabelingStorage(BaseStorage):
                 annotations = d.pop('annotations', [])
                 doc = self.save_doc([d])[0]
                 for annotation in annotations:
-                    _label = annotation.get('label')
+                    label_data = annotation.get('label')
+                    label_data.pop('project')
                     label, _ = Label.objects.get_or_create(
-                        text=_label.get('text'), project_id=doc.project.pk, defaults=_label
+                        text=label_data.get('text'), project_id=doc.project.pk, defaults={
+                            'prefix_key': label_data.get('prefix_key'),
+                            'suffix_key': label_data.get('suffix_key'),
+                            'text_color': label_data.get('text_color'),
+                            'created_at': label_data.get('created_at'),
+                            'background_color': label_data.get('background_color')
+                        }
                     )
                     new_ann = SequenceAnnotation(
                         document=doc,
